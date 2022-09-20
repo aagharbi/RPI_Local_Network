@@ -1,0 +1,81 @@
+Introduction:
+This is a continuation of the access point tutorial for Raspberry Pi.  
+The purpose of this tutorial is for the reader to learn how to set up a bridge for two devices to allow traffic in and out of the internet.
+
+Getting Started:
+We will need a Raspberry Pi 3 B acting as an access point, a Raspberry Pi 3 B with Raspbian OS to act as traffic to and from the internet, 
+and an ethernet cable for bridge connection.  We will be altering the Raspberry Pi 3 B we used as an access point.
+
+Table of Contents:
+1.	Installation
+2.	Add Interface Bridge
+3.	Configure Bridge
+4.	Restart System Network
+5.	Alter HOSTAPD Configuration
+6.	Check Network Interfaces
+7.	Connect RPi to Internet
+
+1.	Installation
+  a)	Install bridge utilities:
+    >> sudo apt install hostapd bridge-utils
+  b)	Stop the new software off since the configurations are not ready
+    >> sudo systemctl stop hostapd
+2.	Add Interface 
+  a)	Open dhcpcd configuration file
+    >> sudo nano /etc/dhcpcd.conf
+  b)	Add two interfaces above added “interfaces” lines
+    >> denyinterfaces wlan0
+    >> denyinterfaces eth0
+  c)	Add a new bridge
+    >> sudo brctl addbr br0
+  d)	Connect the network ports (eth0 and br0)
+    >> sudo brctl addif br0 eth0
+3.	Configure Bridge
+  a)	Create a bridge configuration
+    >> sudo nano /etc/system/network/bridge-br0.netdev
+  b)	Type the following into the file:
+    [NetDev]
+    Name=br0
+    Kind=bridge
+  c)	Configure the bridge slave eth0 interface
+    >> sudo nano /etc/system/network/bridge-br0-slave.network
+  d)	Type the following:
+    [Match]
+    Name=eth0
+
+    [Network]
+    Bridge=br0
+  e)	Configure the bridge br0 interface
+    >> sudo nano /etc/system/network/bridge-br0.network
+  f)	Type the following:
+    [Match]
+    Name=br0
+
+    [Network]
+    Address=192.168.10.100/24
+    Gateway=192.168.10.1
+    DNS=8.8.8.8
+
+4.	Restart System Network
+  a)	Restart the System Network for the changes to take place in the configuration files.
+    >> sudo systemctl restart systemd-netowrkd
+5.	Alter HOSTAPD Configuration
+  a)	Look for interface=wlan0 under hostapd.conf and under it, add bridge=br0.
+    >> sudo nano /etc/hostapd/hostapd/conf
+
+    interface=wlan0
+    bridge=br0	#Add this line between interface and driver
+
+  b)	Reboot Raspberry Pi
+    >> sudo reboot
+
+  c)	Start hostapd
+    >> sudo systemctl unmask hostapd
+    >> sudo systemctl enable hostapd
+    >> sudo systemctl start hostapd
+6.	Check Network Interfaces
+  a)	Check to see that wlan0 and eth0 have no IP address as they are being controlled by the bridge (br0).
+    >> ip addr
+7.	Connect RPi to Internet
+  a)	On the “router” RPi, connect to the internet.  The tutorial “Setting Up VNC” has the information on how to connect.
+  b)	Plug in the ethernet cable via RJ45 of both Raspberry PIs and test the connection.
