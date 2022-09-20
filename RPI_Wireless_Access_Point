@@ -11,49 +11,49 @@ Table of Contents
   4.	Configuring AP host software (hostapd) – Simply defining the network requirements.
   5.	Start and Check – Start hosting and check the status to see if everything is working.
   6.	Adding route and masquerade – Allow devices to communicate with this access point.
-  6.5 Connecting a Device – Make sure you can connect wirelessly to this network using a device with Wi-Fi capabilities.
+  6.5 	Connecting a Device – Make sure you can connect wirelessly to this network using a device with Wi-Fi capabilities.
   7.	MAC Address Filtering – To ensure only specific devices can connect to your network, set a MAC Address filter or “whitelist”
   
   
-1.	Installation
-  a)	Before getting started, make sure Raspbian is updated, upgraded, and rebooted.  Make sure you are connected to the internet for this step.
+1. Installation
+  a) Before getting started, make sure Raspbian is updated, upgraded, and rebooted.  Make sure you are connected to the internet for this step.
     >> sudo apt-get update
     >> sudo apt-get upgrade
     >> sudo reboot
 
-  b)	In order to create an access point, we need to install DNSMasq and HostAPD.
+  b) To create an access point, we need to install DNSMasq and HostAPD.
     >> sudo apt install dnsmasq hostapd
     >> sudo systemctl stop dnsmasq
     >> sudo systemctl stop hostapd
 
-2.	Configuring Static IP
-  a)	To configure a static IP address, we need to edit the dhcpcd configuration file.  Instead of nano, you may also use vi or vim.
+2. Configuring Static IP
+  a) To configure a static IP address, we need to edit the dhcpcd configuration file.  Instead of nano, you may also use vi or vim.
     >> sudo nano /etc/dhcpcd.conf
     At the end of the file, edit it to look like this:
     interface wlan0
-	    static ip_address=192.168.4.1/24
-      nohook wpa_supplicant
-  b)	Restart dhcpcd daemon and set up wlan0 configuration.
+    static ip_address=192.168.4.1/24
+    nohook wpa_supplicant
+  b) Restart dhcpcd daemon and set up wlan0 configuration.
     >> sudo service dhcpcd restart
-3.	Configuring DHCP Server through DNSMasq 
-  a)	Save a copy of dnsmasq config file to start a new one.
+3. Configuring DHCP Server through DNSMasq 
+  a) Save a copy of dnsmasq config file to start a new one.
     >> sudo mv /etc/dnsmasq.conf /etc/dnsmasq.conf.backup
     >> sudo nano /etc/dnsmasq.conf
 
-  b)	Copy the following into the config file and save.
+  b) Copy the following into the config file and save.
     Interface=wlan0
     Dhcp-range=192.168.4.2,192.168.420,255.255.255.0, 24h
-  c)	Start dnsmasq:
+  c) Start dnsmasq:
     >>sudo systemctl start dnsmasq
 
-4.	Configuring AP Host Software (hostapd)
-  a)	Edit the hostapd config file:
+4. Configuring AP Host Software (hostapd)
+  a) Edit the hostapd config file:
     >> sudo nano /etc/hostapd/hostapd.conf
-  b)	Type in the following:
+  b) Type in the following:
     interface=wlan0
     driver=nl80211
     ssid=NameHere
-    hw-mode=g	#this is for IEEE 802.11g (2.4 GHz)
+    hw-mode=g		#this is for IEEE 802.11g (2.4 GHz)
     channel=7
     wmm_enabled=0
     macaddr_acl=0	#this will be changed later
@@ -65,47 +65,49 @@ Table of Contents
     wpa_pairwise=TKIP
     rsn_pairwise=CCMP
 
-c)	Tell the system where to find the config file:
+c) Tell the system where to find the config file:
     >> sudo nano /etc/default/hostapd
-d)	Find #DAEMON_CONF and replace with:
+d) Find #DAEMON_CONF and replace with:
     DAEMON_CONF=”/etc/hostapd/hostapd.conf”
 
-5.	Start and Test
-  a)	Start hostapd:
+5. Start and Test
+  a) Start hostapd:
     >> sudo systemctl unmask hostapd
     >> sudo systemctl enable hostapd
     >> sudo systemctl start hostapd
-  b)	Check status of hostapd and dnsmasq to see if they are active.
+  b) Check status of hostapd and dnsmasq to see if they are active.
     >> sudo systemctl status hostapd
     >> sudo systemctl status dnsmasq
 
-6.	Adding Route and Masq
-  a)	Edit sysctl config file:
+6. Adding Route and Masq
+  a) Edit sysctl config file:
 >> sudo nano /etc/sysctl.conf
-  b)	Uncomment #net.ipv4.ip_forward=1 to look like this:
+  b) Uncomment #net.ipv4.ip_forward=1 to look like this:
     net.ipv4.ip_forward=1
-  c)	Add masq for outbound traffic for eth0:
+  c) Add masq for outbound traffic for eth0:
     >> sudo iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
-  d)	Save iptables rule:
+  d) Save iptables rule:
     >> sudo sh -c “iptables-save >/etc/iptables.ipv4.nat”
-  e)	Edit /etc/rc.local to apply rules on boot.
+  e) Edit /etc/rc.local to apply rules on boot.
     Iptables-restore < /etc/iptables.ipv4.nat
-  f)	Reboot and make sure it’s functioning.
-    6.5.	Connect a Device
+  f) Reboot and make sure it’s functioning.
+6.5. Connect a Device
 
 Using the SSID and passcode created in Step 4, connect devices that have Wi-Fi connection capabilities.
 In this tutorial, we learned to create an access point using a Raspberry Pi to connect devices in a Wireless LAN (local area network).
 
 
 To make our network extra secure, we sometimes use MAC address filters, which are used to whitelist physical addresses (devices).
-7.	 MAC Address Filtering
-  a)	Edit hostapd config file:
+7. MAC Address Filtering
+  a) Edit hostapd config file:
     >> sudo nano /etc/hostapd/hostapd.conf
-  b)	Change macaddr_acl=0 to macaddr_acl=1
-  c)	Add this line:
+  b) Change macaddr_acl=0 to macaddr_acl=1
+  c) Add this line:
     accept_mac_file=/etc/hostapd/accept
-  d)	Add MAC Addresses to the file when needed.  When a new MAC Address is added, reload the configuration:
+  d) Add MAC Addresses to the file when needed.  When a new MAC Address is added, reload the configuration:
     >> /etc/init.d/hostapd reload
+
 To check MAC Address for your Wi-Fi adapter or network card on your Windows 10 PC, Open CMD and Type:
   >> ipconfig /all
+  
 Scroll down until you see your physical address under Wireless LAN Adapter Wi-Fi
