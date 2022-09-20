@@ -1,0 +1,63 @@
+Introduction:
+This is an optional continuation of the access point tutorial for Raspberry Pi.  
+The purpose of this tutorial is for the reader to learn how to secure their network from potential attacks from the outside.
+
+Getting Started:
+We will need a third Raspberry Pi to act as our Firewall.  
+This connection comes in between the Router device and Access Point device.
+
+Table of Contents
+1.	Installation – Persistent IP Tables make it easier to load and save iptables settings.
+2.	Set Basic Rules to Iptables – This step is about adding basic rules for in and outbound traffic
+
+1.	Installation
+  >> sudo apt-get install iptables-persistent
+  >> sudo nano /etc/iptables.test.rules
+  >> sudo iptables-restore < /etc/iptables.test.rules
+  >> sudo iptables -L
+  >> sudo sh -c ‘iptables-save > /etc/iptables.up.rules’
+
+Edit file:
+  >> sudo nano /etc/network/if-pre-up.d/iptables
+
+    #!/bin/sh
+    /sbin/iptables-restore < /etc/iptables.up.rules
+
+  Save file
+
+  >> sudo chmod +x /etc/network/if-pre-up.d/iptables
+
+2.	Set basic rules to iptables
+  #Allow Loopback traffic
+  -A INPUT -i lo -j ACCEPT
+  -A INPUT ! -i lo -d 127.0.0.0/8 -REJECT
+
+  #Accept all ESTABLISHED inbound connections
+  -A INPUT -m state –state ESTABLISHED,RELATED -j ACCEPT
+
+  #Allow all outbound traffic, you can also set rules for outbound traffic to malicious websites
+  -A OUTPUT -j ACCEPT
+
+  #Allows HTTP and HTTPS connections, currently disabled
+  #-A INPUT -p tcp –dport 80 -j ACCEPT
+  #-A INPUT -p tcp –dport 443 -j ACCEPT
+
+  #Allow SSH connections
+  -A INPUT -p tcp -m state --state NEW --dport 22 -j ACCEPT
+
+  #Allows VNC connections from anywhere
+  -A INPUT -p tcp -m state –state NEW –dport 5901 -j ACCEPT
+
+  #Reject ping from outside the network
+  -A INPUT -p icmp -m icmp –icmp-type 8 -j REJECT
+
+  #Reject any other inbound connection
+  -A INPUT -j DROP
+  -A FORWARD -j DROP
+
+  COMMIT
+
+3.	Save and load rules
+  >> sudo iptables-restore < /etc/iptables.test.rules
+  >> sudo iptables -L
+  >> sudo sh -c ‘iptables-save > /etc/iptables.up.rules’
